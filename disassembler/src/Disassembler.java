@@ -3,6 +3,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HexFormat;
 import java.util.List;
 
@@ -25,12 +26,6 @@ public class Disassembler {
         File file;
         ByteBuffer source;
         byte dataEncoding;
-        final int HALF_SIZE = 2;
-        final int WORD_SIZE = 4;
-        final int SWORD_SIZE = 4;
-        final int ADDR_SIZE = 4;
-        final int OFF_SIZE = 4;
-
         /*
         Addr = long
         Half = int
@@ -44,6 +39,8 @@ public class Disassembler {
         int shnum;
         int shstrndx;
         List<Section> sections = new ArrayList<>();
+        List<SymtabEntry> symbolTable = new ArrayList<>();
+        List<Command> programText = new ArrayList<>();
         byte[] shstrtab;
         byte[] strtab;
 
@@ -73,40 +70,43 @@ public class Disassembler {
             readAddr(); // entry
             readOff(); // phoff
             shoff = readOff(); // shoff
-            System.out.println("shoff = " + shoff);
             readWord(); // flags
             readHalf(); // ehsize
             readHalf();// phentsize
             readHalf(); // phnum
             readHalf(); // shentsize
             shnum = readHalf(); // shnum
-            System.out.println("shnum = " + shnum);
             shstrndx = readHalf(); // shstrndx
 
             parseSectionHeader();
             parseSectionHeaderStrtab();
-            System.out.println("Sections");
+            System.out.println("Sections : ");
             for (var s : sections) {
-                System.out.println(getSectionName(s.name));
+                System.out.println(getSectionName(s.name).isEmpty() ? "UND" : getSectionName(s.name));
+                System.out.println(s.toString());
             }
+            parseStrtab();
+            parseSymtab();
         }
 
         public void parseSectionHeader() {
             //there we can check that our header has correct offset
             pointer = shoff;
             for (int i = 0; i < shnum; i++) {
-                sections.add(new Section(
-                        readWord(), // sh_name;
-                        readWord(), // sh_type;
-                        readWord(), // sh_flags;
-                        readAddr(), // sh_addr;
-                        readOff(), // sh_offset;
-                        readWord(), // sh_size;
-                        readWord(), // sh_link;
-                        readWord(), // sh_info;
-                        readWord(), // sh_addralign;
-                        readWord() // sh_entsize;
-                ));
+                sections.add(
+                        new Section(
+                                readWord(), // sh_name;
+                                readWord(), // sh_type;
+                                readWord(), // sh_flags;
+                                readAddr(), // sh_addr;
+                                readOff(), // sh_offset;
+                                readWord(), // sh_size;
+                                readWord(), // sh_link;
+                                readWord(), // sh_info;
+                                readWord(), // sh_addralign;
+                                readWord() // sh_entsize;
+                        )
+                );
             }
         }
 
@@ -163,12 +163,41 @@ public class Disassembler {
 
         public void parseSymtab() {
             Section symtab = find(".symtab");
-            //for (int i = )
+            pointer = symtab.offset;
+            for (int i = 0; i < symtab.size / symtab.entsize; i++) {
+                symbolTable.add(
+                        new SymtabEntry(
+                                readWord(),
+                                readAddr(),
+                                readWord(),
+                                readByte(),
+                                readByte(),
+                                readHalf()
+                        )
+                );
+            }
         }
 
         public void parseText() {
+            System.out.println();
             Section text = find(".text");
-
+            pointer = text.offset;
+            int address = text.addr;
+            for (int i = 0; i < text.size / 4; i++) {
+                // representing an instruction as a boolean array
+                boolean[] line = new boolean[32];
+                for (int j = 0; j < 4; j++) {
+                    short x = readByte();
+                    for (int sh = 0; sh < 8; sh++) {
+                        line[8 * j + sh] = (x == (x | (1 << sh)));
+                    }
+                }
+                System.out.println(Integer.toHexString(address) + "   " + Commands.classify(line));
+                programText.add(
+                        Commands.classify(line).setAddress(address)
+                );
+                address += 4;
+            }
         }
 
         private void skip(int n) {
