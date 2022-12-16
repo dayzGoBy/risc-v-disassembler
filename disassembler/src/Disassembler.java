@@ -15,8 +15,8 @@ public class Disassembler {
         ){
             p.parseHeaderAndSections();
             p.parseText();
-            w.writeText();
-            w.writeSymTab();
+            w.writeText(p.programText);
+            w.writeSymTab(p.symbolTable);
         } catch (IOException ex) {
             System.out.println("Error: input/output exception");
         }
@@ -167,7 +167,7 @@ public class Disassembler {
             for (int i = 0; i < symtab.size / symtab.entsize; i++) {
                 symbolTable.add(
                         new SymtabEntry(
-                                readWord(),
+                                getString(readWord()),
                                 readAddr(),
                                 readWord(),
                                 readByte(),
@@ -261,21 +261,29 @@ public class Disassembler {
             }
         }
 
-        public void writeText() throws IOException {
+        public void writeText(List<Command> programText) throws IOException {
             writer.write("; this is text section");
             writer.newLine();
             writer.write(".text");
             writer.newLine();
-            // TODO: ???
+            for (int i = 0; i < programText.size(); i++) {
+                writer.write(programText.get(i).toString());
+                writer.newLine();
+            }
             writer.newLine();
         }
 
-        public void writeSymTab() throws IOException {
+        public void writeSymTab(List<SymtabEntry> symbolTable) throws IOException {
             writer.write("; this is symbol table");
             writer.newLine();
             writer.write(".symtab");
             writer.newLine();
-            // TODO: ???
+            writer.write("Symbol   Value            Size    Type    Bind       Vis   Index  Name");
+            writer.newLine();
+            for (int i = 0; i < symbolTable.size(); i++) {
+                writer.write(String.format("[%4d] ", i) + symbolTable.get(i));
+                writer.newLine();
+            }
         }
 
         @Override

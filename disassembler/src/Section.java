@@ -32,7 +32,6 @@ public class Section {
                 name, type, flags, addr, offset, size, link, info, addralign, entsize);
     }
 
-
     public boolean isStrTab() {
         return type == 3;
     }
