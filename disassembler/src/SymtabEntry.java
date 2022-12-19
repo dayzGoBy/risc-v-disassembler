@@ -39,9 +39,17 @@ public class SymtabEntry {
         };
     }
 
+    public String getIndex() {
+        return switch (shndx){
+            case 0 -> "UNDEF";
+            case 65521 -> "ABS";
+            default -> Integer.toString(shndx);
+        };
+    }
+
     @Override
     public String toString() {
-        return String.format("0x%-15X %5d %-8s %-8s %-8s %6s %s", value, size,
-                getType(), getBind(), "DEFAULT", shndx, name);
+        return String.format("0x%015X %5d %-8s %-8s %-8s %6s %s", value, size,
+                getType(), getBind(), "DEFAULT", getIndex(), name);
     }
 }

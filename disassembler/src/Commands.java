@@ -2,66 +2,77 @@ import java.util.Arrays;
 
 public enum Commands {
     // DEFAULT RV32I COMMANDS
-    LUI("LUI"),
-    AUIPC("AUIPC"),
-    JAL("JAL"),
-    JALR("JALR"),
-    BEQ("BEQ"),
-    BNE("BNE"),
-    BLT("BLT"),
-    BGE("BGE"),
-    BLTU("BLTU"),
-    BGEU("BGEU"),
-    LB("LB"),
-    LH("LH"),
-    LW("LW"),
-    LBU("LBU"),
-    LHU("LHU"),
-    SB("SB"),
-    SH("SH"),
-    SW("SW"),
-    ADDI("ADDI"),
-    SLTI("SLTI"),
-    SLTIU("SLTIU"),
-    XORI("XORI"),
-    ORI("ORI"),
-    ANDI("ANDI"),
-    SLLI("SLLI"),
-    SRLI("SRLI"),
-    SRAI("SRAI"),
-    ADD("ADD"),
-    SUB("SUB"),
-    SLL("SLL"),
-    SLT("SLT"),
-    SLTU("SLTU"),
-    XOR("XOR"),
-    SRL("SRL"),
-    SRA("SRA"),
-    OR("OR"),
-    AND("AND"),
-    FENCE("FENCE"),
-    ECALL("ECALL"),
-    EBREAK("EBREAK"),
+    UNKNOWN("UNKNOWN_INSTRUCTION", Type.UNKNOWN),
+    LUI("LUI", Type.U),
+    AUIPC("AUIPC", Type.U),
+    JAL("JAL", Type.J),
+    JALR("JALR", Type.LOAD),
+    BEQ("BEQ", Type.S),
+    BNE("BNE", Type.S),
+    BLT("BLT", Type.S),
+    BGE("BGE", Type.S),
+    BLTU("BLTU", Type.S),
+    BGEU("BGEU", Type.S),
+    LB("LB", Type.LOAD),
+    LH("LH", Type.LOAD),
+    LW("LW", Type.LOAD),
+    LBU("LBU", Type.LOAD),
+    LHU("LHU", Type.LOAD),
+    SB("SB", Type.STORE),
+    SH("SH", Type.STORE),
+    SW("SW", Type.STORE),
+    ADDI("ADDI", Type.I),
+    SLTI("SLTI", Type.I),
+    SLTIU("SLTIU", Type.I),
+    XORI("XORI", Type.I),
+    ORI("ORI", Type.I),
+    ANDI("ANDI", Type.I),
+    SLLI("SLLI", Type.SHAMT),
+    SRLI("SRLI", Type.SHAMT),
+    SRAI("SRAI", Type.SHAMT),
+    ADD("ADD", Type.R),
+    SUB("SUB", Type.R),
+    SLL("SLL", Type.R),
+    SLT("SLT", Type.R),
+    SLTU("SLTU", Type.R),
+    XOR("XOR", Type.R),
+    SRL("SRL", Type.R),
+    SRA("SRA", Type.R),
+    OR("OR", Type.R),
+    AND("AND", Type.R),
+    FENCE("FENCE", Type.FENCE),
+    ECALL("ECALL", Type.ECALL),
+    EBREAK("EBREAK", Type.EBREAK),
 
     // RV32M commands
-    MUL("MUL"),
-    MULH("MULH"),
-    MULHSU("MULHSU"),
-    MULHU("MULHU"),
-    DIV("DIV"),
-    DIVU("DIVU"),
-    REM("REM"),
-    REMU("REMU");
+    MUL("MUL", Type.R),
+    MULH("MULH", Type.R),
+    MULHSU("MULHSU", Type.R),
+    MULHU("MULHU", Type.R),
+    DIV("DIV", Type.R),
+    DIVU("DIVU", Type.R),
+    REM("REM", Type.R),
+    REMU("REMU", Type.R);
 
     final String value;
+    final Type type;
 
-    Commands(String value) {
+    Commands(String value, Type type) {
         this.value = value;
+        this.type = type;
+    }
+
+    public enum Type{
+        R, I, S, U, J, LOAD, STORE, ECALL, EBREAK, FENCE, SHAMT, UNKNOWN
     }
 
     // method that classifies the command in the line
     public static Command classify (boolean[] line) {
         return new Command(getByCode(line), line);
+    }
+
+    public Type getType() {
+        return this.type;
     }
 
     private static Commands getByCode(boolean[] line) {
@@ -89,7 +100,7 @@ public enum Commands {
                 case 0b101 -> BGE;
                 case 0b110 -> BLTU;
                 case 0b111 -> BGEU;
-                default -> throw new IllegalArgumentException("Unknown B* command");
+                default -> UNKNOWN;
             };
             case 0b0000011 -> switch (func3) {
                 case 0b000 -> LB;
@@ -97,13 +108,13 @@ public enum Commands {
                 case 0b010 -> LW;
                 case 0b100 -> LBU;
                 case 0b101 -> LHU;
-                default -> throw new IllegalArgumentException("Unknown L* command");
+                default -> UNKNOWN;
             };
             case 0b0100011 -> switch (func3) {
                 case 0b000 -> SB;
                 case 0b001 -> SH;
                 case 0b010 -> SW;
-                default -> throw new IllegalArgumentException("Unknown S* command");
+                default -> UNKNOWN;
             };
             case 0b0010011 -> switch (func3) {
                 case 0b000 -> ADDI;
@@ -116,58 +127,58 @@ public enum Commands {
                 case 0b101 -> switch (func7) {
                     case 0b0000000 -> SRLI;
                     case 0b0100000 -> SRAI;
-                    default -> throw new IllegalStateException("Unexpected value: " + func7);
+                    default -> UNKNOWN;
                 };
-                default -> throw new IllegalArgumentException("Unknown *I command");
+                default -> UNKNOWN;
             };
             case 0b0110011 -> switch (func3) {
                 case 0b000 -> switch (func7) {
                     case 0b0000000 -> ADD;
                     case 0b0100000 -> SUB;
                     case 0b0000001 -> MUL;
-                    default -> throw new IllegalArgumentException("Unknown ADD/SUB command");
+                    default -> UNKNOWN;
                 };
                 case 0b001 -> switch(func7) {
                     case 0b0000000 -> SLL;
                     case 0b0000001 -> MULH;
-                    default -> throw new IllegalArgumentException();
+                    default -> UNKNOWN;
                 };
                 case 0b010 -> switch(func7) {
                     case 0b0000000 -> SLT;
                     case 0b0000001 -> MULHSU;
-                    default -> throw new IllegalArgumentException();
+                    default -> UNKNOWN;
                 };
                 case 0b011 -> switch(func7) {
                     case 0b0000000 -> SLTU;
                     case 0b0000001 -> MULHU;
-                    default -> throw new IllegalArgumentException();
+                    default -> UNKNOWN;
                 };
                 case 0b100 -> switch(func7) {
                     case 0b0000000 -> XOR;
                     case 0b0000001 -> DIV;
-                    default -> throw new IllegalArgumentException();
+                    default -> UNKNOWN;
                 };
                 case 0b101 -> switch (func7) {
                     case 0b0000000 -> SRL;
                     case 0b0100000 -> SRA;
                     case 0b0000001 -> DIV;
-                    default -> throw new IllegalArgumentException();
+                    default -> UNKNOWN;
                 };
                 case 0b110 -> switch(func7) {
                     case 0b0000000 -> OR;
                     case 0b0000001 -> REM;
-                    default -> throw new IllegalArgumentException();
+                    default -> UNKNOWN;
                 };
                 case 0b111 -> switch(func7) {
                     case 0b0000000 -> AND;
                     case 0b0000001 -> REMU;
-                    default -> throw new IllegalArgumentException();
+                    default -> UNKNOWN;
                 };
-                default -> throw new IllegalArgumentException();
+                default -> UNKNOWN;
             };
             case 0b0001111 -> FENCE;
             case 0b1110011 -> line[20] ? EBREAK : ECALL;
-            default -> throw new IllegalArgumentException("Unknown command");
+            default -> UNKNOWN;
         };
     }
 

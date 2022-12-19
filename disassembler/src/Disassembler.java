@@ -3,8 +3,6 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.file.Files;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HexFormat;
 import java.util.List;
 
 public class Disassembler {
@@ -80,11 +78,6 @@ public class Disassembler {
 
             parseSectionHeader();
             parseSectionHeaderStrtab();
-            System.out.println("Sections : ");
-            for (var s : sections) {
-                System.out.println(getSectionName(s.name).isEmpty() ? "UND" : getSectionName(s.name));
-                System.out.println(s.toString());
-            }
             parseStrtab();
             parseSymtab();
         }
@@ -192,7 +185,7 @@ public class Disassembler {
                         line[8 * j + sh] = (x == (x | (1 << sh)));
                     }
                 }
-                System.out.println(Integer.toHexString(address) + "   " + Commands.classify(line));
+                //System.out.println(Integer.toHexString(address) + "   " + Commands.classify(line));
                 programText.add(
                         Commands.classify(line).setAddress(address)
                 );
@@ -266,8 +259,8 @@ public class Disassembler {
             writer.newLine();
             writer.write(".text");
             writer.newLine();
-            for (int i = 0; i < programText.size(); i++) {
-                writer.write(programText.get(i).toString());
+            for (Command command : programText) {
+                writer.write(command.toString());
                 writer.newLine();
             }
             writer.newLine();
