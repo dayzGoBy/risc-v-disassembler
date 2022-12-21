@@ -7,12 +7,12 @@ public enum Commands {
     AUIPC("AUIPC", Type.U),
     JAL("JAL", Type.J),
     JALR("JALR", Type.LOAD),
-    BEQ("BEQ", Type.S),
-    BNE("BNE", Type.S),
-    BLT("BLT", Type.S),
-    BGE("BGE", Type.S),
-    BLTU("BLTU", Type.S),
-    BGEU("BGEU", Type.S),
+    BEQ("BEQ", Type.B),
+    BNE("BNE", Type.B),
+    BLT("BLT", Type.B),
+    BGE("BGE", Type.B),
+    BLTU("BLTU", Type.B),
+    BGEU("BGEU", Type.B),
     LB("LB", Type.LOAD),
     LH("LH", Type.LOAD),
     LW("LW", Type.LOAD),
@@ -63,7 +63,7 @@ public enum Commands {
     }
 
     public enum Type{
-        R, I, S, U, J, LOAD, STORE, ECALL, EBREAK, FENCE, SHAMT, UNKNOWN
+        R, I, S, B, U, J, LOAD, STORE, ECALL, EBREAK, FENCE, SHAMT, UNKNOWN
     }
 
     // method that classifies the command in the line

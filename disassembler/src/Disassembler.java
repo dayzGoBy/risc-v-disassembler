@@ -3,6 +3,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class Disassembler {
@@ -13,7 +14,7 @@ public class Disassembler {
         ){
             p.parseHeaderAndSections();
             p.parseText();
-            w.writeText(p.programText);
+            w.writeText(p.programText, p.symbolTable);
             w.writeSymTab(p.symbolTable);
         } catch (IOException ex) {
             System.out.println("Error: input/output exception");
@@ -172,7 +173,6 @@ public class Disassembler {
         }
 
         public void parseText() {
-            System.out.println();
             Section text = find(".text");
             pointer = text.offset;
             int address = text.addr;
@@ -185,7 +185,6 @@ public class Disassembler {
                         line[8 * j + sh] = (x == (x | (1 << sh)));
                     }
                 }
-                //System.out.println(Integer.toHexString(address) + "   " + Commands.classify(line));
                 programText.add(
                         Commands.classify(line).setAddress(address)
                 );
@@ -254,13 +253,36 @@ public class Disassembler {
             }
         }
 
-        public void writeText(List<Command> programText) throws IOException {
+        /*private SymtabEntry searchInSymtab(Command command) {
+            for (SymtabEntry en : symbolTable) {
+                if (command.address == en.value && (en.info & 0xf) == 2) {
+
+                    break;
+                }
+            }
+        }*/
+
+        public void writeText(List<Command> programText, List<SymtabEntry> symbolTable) throws IOException {
             writer.write("; this is text section");
             writer.newLine();
             writer.write(".text");
             writer.newLine();
+            int numberOfMarks = 0;
+            //TODO: correct marks
             for (Command command : programText) {
-                writer.write(command.toString());
+                for (SymtabEntry en : symbolTable) {
+                    if (command.address == en.value && (en.info & 0xf) == 2) {
+                        writer.newLine();
+                        writer.write(String.format("%08x <%s>:", en.value, en.name.isEmpty() ? "L" : en.name));
+                        writer.newLine();
+                        break;
+                    }
+                }
+                writer.write(String.format("   %05x:\t%08x\t%7s \t%s", command.address, command.getValue(),
+                        command.name.toString().toLowerCase(), command.getArgumets()));
+                if (command.name.type == Commands.Type.B || command.name.type == Commands.Type.J) {
+
+                }
                 writer.newLine();
             }
             writer.newLine();

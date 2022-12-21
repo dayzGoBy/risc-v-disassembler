@@ -3,20 +3,7 @@ import java.util.Arrays;
 public class Command {
     public Commands name;
     public boolean[] line;
-    public int source1;
-    public int source2;
-    public int dest;
-    public boolean[] imm;
     public int address;
-
-    public Command(Commands name, boolean[] line, int source1, int source2, int dest, boolean[] imm) {
-        this.line = line;
-        this.name = name;
-        this.source1 = source1;
-        this.source2 = source2;
-        this.dest = dest;
-        this.imm = imm;
-    }
 
     public Command (Commands name, boolean[] line) {
         this.name = name;
@@ -83,6 +70,12 @@ public class Command {
                 return res;
             }
             case U: return Arrays.copyOfRange(line, 12, 32);
+            case J:
+                boolean[] temp = Arrays.copyOf(Arrays.copyOfRange(line, 21, 31), 20);
+                temp[10] = line[20];
+                System.arraycopy(line, 12, temp, 11, 8);
+                temp[19] = line[31];
+                return temp;
             default: throw new IllegalArgumentException("Unknown operation type");
         }
     }
@@ -100,37 +93,44 @@ public class Command {
         return res;
     }
 
+    public int getOffset(boolean[] imm) {
+        return address + (getImm(imm) << 1);
+    }
+
     public Command setAddress(int address) {
         this.address = address;
         return this;
     }
 
-    private String getArgumets() {
-        switch (name.type) {
-            case R: return String.format("%s, %s, %s", getReg(rd()), getReg(rs1()), getReg(rs2()));
-            case I: return String.format("%s, %s, %s", getReg(rd()), getReg(rs1()), getImm(imm()));
-            case S: return String.format("%s, %s, %s", getReg(rs1()), getReg(rs2()), getImm(imm()));
-            case U: return String.format("%s, %x", getReg(rd()), getImm(imm()));
-            case LOAD: return String.format("%s, %s(%s)", getReg(rd()), getImm(imm()), getReg(rs1()));
-            case STORE: return String.format("%s, %s(%s)", getReg(rs2()), getImm(imm()), getReg(rs1()));
-            case FENCE: return "iorw, iorw";
-            case SHAMT: return String.format("%s, %s, %s", getReg(rd()), getReg(rs1()), getImm(shamt()));
-            case ECALL:
-            case EBREAK:
-            case UNKNOWN:
-                return "";
-            case J: return String.format("%s, %s", getReg(rd()), "SMTH");
+    public String getArgumets() {
+        switch (name) {
+            case JAL: return String.format("%s, %x", getReg(rd()), getOffset(imm()));
+            case JALR: return String.format("%s, %s(%s)", getReg(rd()), getReg(rs1()), getImm(imm()));
+            default: switch (name.type) {
+                case R: return String.format("%s, %s, %s", getReg(rd()), getReg(rs1()), getReg(rs2()));
+                case I: return String.format("%s, %s, %s", getReg(rd()), getReg(rs1()), getImm(imm()));
+                case S: return String.format("%s, %s, %s", getReg(rs1()), getReg(rs2()), getImm(imm()));
+                //TODO: branch commands
+                case B: return String.format("%s, %s, %s", getReg(rs1()), getReg(rs2()), getOffset(imm()));
+                case U: return String.format("%s, %x", getReg(rd()), getImm(imm()));
+                case LOAD: return String.format("%s, %s(%s)", getReg(rd()), getImm(imm()), getReg(rs1()));
+                case STORE: return String.format("%s, %s(%s)", getReg(rs2()), getImm(imm()), getReg(rs1()));
+                case FENCE: return "iorw, iorw";
+                case SHAMT: return String.format("%s, %s, %s", getReg(rd()), getReg(rs1()), getImm(shamt()));
+                case ECALL:
+                case EBREAK:
+                case UNKNOWN:
+                    return "";
+            }
         }
         return null;
     }
 
-    @Override
-    public String toString() {
+    public int getValue() {
         int value = 0;
         for (int i = 0; i < 32; i++) {
             value += (line[i] ? 1 : 0) << i;
         }
-
-        return String.format("   %05x:\t%08x\t%7s \t%s", address, value, name.toString().toLowerCase(), getArgumets());
+        return value;
     }
 }
