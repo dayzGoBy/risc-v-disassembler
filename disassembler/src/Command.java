@@ -1,4 +1,5 @@
 import java.util.Arrays;
+import java.util.Map;
 
 public class Command {
     public Commands name;
@@ -76,6 +77,12 @@ public class Command {
                 System.arraycopy(line, 12, temp, 11, 8);
                 temp[19] = line[31];
                 return temp;
+            case B:
+                temp = Arrays.copyOf(Arrays.copyOfRange(line, 8, 11), 12);
+                temp[4] = line[7];
+                System.arraycopy(line, 25, temp, 5, 6);
+                temp[11] = line[31];
+                return temp;
             default: throw new IllegalArgumentException("Unknown operation type");
         }
     }
@@ -102,21 +109,34 @@ public class Command {
         return this;
     }
 
-    public String getArgumets() {
-        switch (name) {
-            case JAL: return String.format("%s, %x", getReg(rd()), getOffset(imm()));
-            case JALR: return String.format("%s, %s(%s)", getReg(rd()), getReg(rs1()), getImm(imm()));
-            default: switch (name.type) {
-                case R: return String.format("%s, %s, %s", getReg(rd()), getReg(rs1()), getReg(rs2()));
-                case I: return String.format("%s, %s, %s", getReg(rd()), getReg(rs1()), getImm(imm()));
-                case S: return String.format("%s, %s, %s", getReg(rs1()), getReg(rs2()), getImm(imm()));
-                //TODO: branch commands
-                case B: return String.format("%s, %s, %s", getReg(rs1()), getReg(rs2()), getOffset(imm()));
-                case U: return String.format("%s, %x", getReg(rd()), getImm(imm()));
-                case LOAD: return String.format("%s, %s(%s)", getReg(rd()), getImm(imm()), getReg(rs1()));
-                case STORE: return String.format("%s, %s(%s)", getReg(rs2()), getImm(imm()), getReg(rs1()));
-                case FENCE: return "iorw, iorw";
-                case SHAMT: return String.format("%s, %s, %s", getReg(rd()), getReg(rs1()), getImm(shamt()));
+    public String getArgumets(Map<Integer, String> marks, Integer numberOfMarks) {
+        if (name == Commands.JAL) {
+            int off = getOffset(imm());
+            marks.computeIfAbsent(off, k -> String.format("L%d", numberOfMarks));
+            return String.format("%s, 0x%x <%s>", getReg(rd()), off, marks.get(off));
+        } else {
+            int off;
+            switch (name.type) {
+                case R:
+                    return String.format("%s, %s, %s", getReg(rd()), getReg(rs1()), getReg(rs2()));
+                case I:
+                    return String.format("%s, %s, %s", getReg(rd()), getReg(rs1()), getImm(imm()));
+                case S:
+                    return String.format("%s, %s, %s", getReg(rs1()), getReg(rs2()), getImm(imm()));
+                case B:
+                    off = getOffset(imm());
+                    marks.computeIfAbsent(off, k -> String.format("L%d", numberOfMarks));
+                    return String.format("%s, %s, 0x%x <%s>", getReg(rs1()), getReg(rs2()), off, marks.get(off));
+                case U:
+                    return String.format("%s, 0x%x", getReg(rd()), getImm(imm()));
+                case LOAD:
+                    return String.format("%s, %s(%s)", getReg(rd()), getImm(imm()), getReg(rs1()));
+                case STORE:
+                    return String.format("%s, %s(%s)", getReg(rs2()), getImm(imm()), getReg(rs1()));
+                case FENCE:
+                    return "iorw, iorw, 255";
+                case SHAMT:
+                    return String.format("%s, %s, %s", getReg(rd()), getReg(rs1()), getImm(shamt()));
                 case ECALL:
                 case EBREAK:
                 case UNKNOWN:

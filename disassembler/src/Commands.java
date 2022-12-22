@@ -1,5 +1,3 @@
-import java.util.Arrays;
-
 public enum Commands {
     // DEFAULT RV32I COMMANDS
     UNKNOWN("UNKNOWN_INSTRUCTION", Type.UNKNOWN),
@@ -181,8 +179,6 @@ public enum Commands {
             default -> UNKNOWN;
         };
     }
-
-
 
     @Override
     public String toString() {

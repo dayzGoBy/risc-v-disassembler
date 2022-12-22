@@ -2,16 +2,14 @@ import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 public class Disassembler {
     public void convert(String pathFrom, String pathTo) {
         try (
                 Parser p = new Parser(pathFrom);
                 Writer w = new Writer(pathTo)
-        ){
+        ) {
             p.parseHeaderAndSections();
             p.parseText();
             w.writeText(p.programText, p.symbolTable);
@@ -25,14 +23,6 @@ public class Disassembler {
         File file;
         ByteBuffer source;
         byte dataEncoding;
-        /*
-        Addr = long
-        Half = int
-        Off = long
-        Sword = int
-        Word = long
-        Unsigned char = char
-         */
         int pointer = 0;
         int shoff;
         int shnum;
@@ -57,7 +47,7 @@ public class Disassembler {
 
         public void parseHeaderAndSections() throws IOException {
             if (readWord() == 0x7f454c46) {
-                throw error("This file is not elf");
+                throw new IllegalStateException("This file is not elf");
             }
             skip(1); // EI_CLASS
             dataEncoding = readByte(); // Little endian must be
@@ -219,20 +209,12 @@ public class Disassembler {
             return readFourBytes();
         }
 
-        private int readSword() {
-            return readFourBytes();
-        }
-
         private int readOff() {
             return readFourBytes();
         }
 
         private byte readByte() {
             return source.get(pointer++);
-        }
-
-        protected IllegalArgumentException error(final String message) {
-            return new IllegalArgumentException(message);
         }
 
         @Override
@@ -243,6 +225,7 @@ public class Disassembler {
 
     public static class Writer implements AutoCloseable {
         BufferedWriter writer;
+
         public Writer(String path) {
             try {
                 this.writer = new BufferedWriter(new FileWriter(path));
@@ -253,35 +236,32 @@ public class Disassembler {
             }
         }
 
-        /*private SymtabEntry searchInSymtab(Command command) {
-            for (SymtabEntry en : symbolTable) {
-                if (command.address == en.value && (en.info & 0xf) == 2) {
-
-                    break;
-                }
+        public Map<Integer, String> mapFromSymtab(List<SymtabEntry> symbolTable) {
+            Map<Integer, String> map = new HashMap<>();
+            for (SymtabEntry s : symbolTable) {
+                map.put(s.value, s.name);
             }
-        }*/
+            return map;
+        }
 
         public void writeText(List<Command> programText, List<SymtabEntry> symbolTable) throws IOException {
             writer.write("; this is text section");
             writer.newLine();
             writer.write(".text");
             writer.newLine();
-            int numberOfMarks = 0;
-            //TODO: correct marks
+            Integer numberOfMarks = 0;
+            Map<Integer, String> marks = mapFromSymtab(symbolTable);
             for (Command command : programText) {
-                for (SymtabEntry en : symbolTable) {
-                    if (command.address == en.value && (en.info & 0xf) == 2) {
-                        writer.newLine();
-                        writer.write(String.format("%08x <%s>:", en.value, en.name.isEmpty() ? "L" : en.name));
-                        writer.newLine();
-                        break;
-                    }
+                int isUpdated = marks.size();
+                if (marks.get(command.address) != null) {
+                    String name = marks.get(command.address);
+                    writer.write(String.format("%08x <%s>:", command.address, name.isEmpty() ? String.format("L%d", numberOfMarks++) : name));
+                    writer.newLine();
                 }
                 writer.write(String.format("   %05x:\t%08x\t%7s \t%s", command.address, command.getValue(),
-                        command.name.toString().toLowerCase(), command.getArgumets()));
-                if (command.name.type == Commands.Type.B || command.name.type == Commands.Type.J) {
-
+                        command.name.toString().toLowerCase(), command.getArgumets(marks, numberOfMarks)));
+                if (isUpdated != marks.size()) {
+                    numberOfMarks++;
                 }
                 writer.newLine();
             }
