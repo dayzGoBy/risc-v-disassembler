@@ -16,6 +16,8 @@ public class Disassembler {
             w.writeSymTab(p.symbolTable);
         } catch (IOException ex) {
             System.out.println("Error: input/output exception");
+        } catch (IllegalArgumentException ex) {
+            System.out.println(ex.getMessage());
         }
     }
 
@@ -47,7 +49,7 @@ public class Disassembler {
 
         public void parseHeaderAndSections() throws IOException {
             if (readWord() == 0x7f454c46) {
-                throw new IllegalStateException("This file is not elf");
+                throw new IllegalArgumentException("This file is not elf");
             }
             skip(1); // EI_CLASS
             dataEncoding = readByte(); // Little endian must be
@@ -74,7 +76,6 @@ public class Disassembler {
         }
 
         public void parseSectionHeader() {
-            //there we can check that our header has correct offset
             pointer = shoff;
             for (int i = 0; i < shnum; i++) {
                 sections.add(
@@ -189,7 +190,6 @@ public class Disassembler {
         }
 
         private int readFourBytes() {
-            //  create a byte buffer and wrap the array
             int res = source.getInt(pointer);
             pointer += 4;
             return res;
@@ -244,33 +244,33 @@ public class Disassembler {
             return map;
         }
 
+        private void updateSymtab(List<Command> programText, Map<Integer, String> marks) {
+            int num = 0;
+            for (Command command : programText) {
+                if (command.name.type == Commands.Type.B || command.name == Commands.JAL) {
+                    marks.putIfAbsent(command.getOffset(), String.format("L%d", num++));
+                }
+            }
+        }
+
         public void writeText(List<Command> programText, List<SymtabEntry> symbolTable) throws IOException {
-            writer.write("; this is text section");
-            writer.newLine();
             writer.write(".text");
             writer.newLine();
-            Integer numberOfMarks = 0;
             Map<Integer, String> marks = mapFromSymtab(symbolTable);
+            updateSymtab(programText, marks);
             for (Command command : programText) {
-                int isUpdated = marks.size();
                 if (marks.get(command.address) != null) {
-                    String name = marks.get(command.address);
-                    writer.write(String.format("%08x <%s>:", command.address, name.isEmpty() ? String.format("L%d", numberOfMarks++) : name));
+                    writer.write(String.format("%08x <%s>:", command.address, marks.get(command.address)));
                     writer.newLine();
                 }
-                writer.write(String.format("   %05x:\t%08x\t%7s \t%s", command.address, command.getValue(),
-                        command.name.toString().toLowerCase(), command.getArgumets(marks, numberOfMarks)));
-                if (isUpdated != marks.size()) {
-                    numberOfMarks++;
-                }
+                writer.write(String.format("   %05x:\t%08x\t%7s\t%s", command.address, command.getValue(),
+                        command.name.toString().toLowerCase(), command.getArgumets(marks)));
                 writer.newLine();
             }
             writer.newLine();
         }
 
         public void writeSymTab(List<SymtabEntry> symbolTable) throws IOException {
-            writer.write("; this is symbol table");
-            writer.newLine();
             writer.write(".symtab");
             writer.newLine();
             writer.write("Symbol   Value            Size    Type    Bind       Vis   Index  Name");

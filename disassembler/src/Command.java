@@ -43,6 +43,8 @@ public class Command {
             case 3: return "gp";
             case 4: return "ta";
             case 5: return "t0";
+            case 8: return "fp";
+            case 9: return "s1";
             default: {
                 if (res == 6 || res == 7) {
                     return String.format("t%d", res - 5);
@@ -53,15 +55,15 @@ public class Command {
                 } else if (res >= 28 && res <= 31) {
                     return String.format("t%d", res - 25);
                 } else {
-                    throw new IllegalArgumentException();
+                    throw new IllegalArgumentException("Unknown register");
                 }
             }
         }
     }
 
     private boolean[] imm() {
-        switch (name.getType()) {
-            case R: throw new IllegalStateException();
+        switch (name.type) {
+            case R: throw new IllegalArgumentException();
             case I:
             case LOAD: return Arrays.copyOfRange(line, 20, 32);
             case S:
@@ -78,9 +80,9 @@ public class Command {
                 temp[19] = line[31];
                 return temp;
             case B:
-                temp = Arrays.copyOf(Arrays.copyOfRange(line, 8, 11), 12);
-                temp[4] = line[7];
-                System.arraycopy(line, 25, temp, 5, 6);
+                temp = Arrays.copyOf(Arrays.copyOfRange(line, 8, 12), 12);
+                System.arraycopy(line, 25, temp, 4, 6);
+                temp[10] = line[7];
                 temp[11] = line[31];
                 return temp;
             default: throw new IllegalArgumentException("Unknown operation type");
@@ -100,7 +102,8 @@ public class Command {
         return res;
     }
 
-    public int getOffset(boolean[] imm) {
+    public int getOffset() {
+        boolean[] imm = imm();
         return address + (getImm(imm) << 1);
     }
 
@@ -109,10 +112,9 @@ public class Command {
         return this;
     }
 
-    public String getArgumets(Map<Integer, String> marks, Integer numberOfMarks) {
+    public String getArgumets(Map<Integer, String> marks) {
         if (name == Commands.JAL) {
-            int off = getOffset(imm());
-            marks.computeIfAbsent(off, k -> String.format("L%d", numberOfMarks));
+            int off = getOffset();
             return String.format("%s, 0x%x <%s>", getReg(rd()), off, marks.get(off));
         } else {
             int off;
@@ -124,8 +126,7 @@ public class Command {
                 case S:
                     return String.format("%s, %s, %s", getReg(rs1()), getReg(rs2()), getImm(imm()));
                 case B:
-                    off = getOffset(imm());
-                    marks.computeIfAbsent(off, k -> String.format("L%d", numberOfMarks));
+                    off = getOffset();
                     return String.format("%s, %s, 0x%x <%s>", getReg(rs1()), getReg(rs2()), off, marks.get(off));
                 case U:
                     return String.format("%s, 0x%x", getReg(rd()), getImm(imm()));

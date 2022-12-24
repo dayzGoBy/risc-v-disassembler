@@ -52,8 +52,8 @@ public enum Commands {
     REM("REM", Type.R),
     REMU("REMU", Type.R);
 
-    final String value;
-    final Type type;
+    public final String value;
+    public final Type type;
 
     Commands(String value, Type type) {
         this.value = value;
@@ -64,13 +64,8 @@ public enum Commands {
         R, I, S, B, U, J, LOAD, STORE, ECALL, EBREAK, FENCE, SHAMT, UNKNOWN
     }
 
-    // method that classifies the command in the line
     public static Command classify (boolean[] line) {
         return new Command(getByCode(line), line);
-    }
-
-    public Type getType() {
-        return this.type;
     }
 
     private static Commands getByCode(boolean[] line) {

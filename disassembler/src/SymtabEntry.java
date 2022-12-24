@@ -35,7 +35,7 @@ public class SymtabEntry {
             case 4 -> "FILE";
             case 13 -> "LOPROC";
             case 15 -> "HIPROC";
-            default -> throw new IllegalArgumentException();
+            default -> throw new IllegalArgumentException(String.format("Wrong symtab entry type: %s", name));
         };
     }
 
@@ -49,7 +49,7 @@ public class SymtabEntry {
 
     @Override
     public String toString() {
-        return String.format("0x%015X %5d %-8s %-8s %-8s %6s %s", value, size,
+        return String.format("0x%-15X %5d %-8s %-8s %-8s %6s %s", value, size,
                 getType(), getBind(), "DEFAULT", getIndex(), name);
     }
 }
