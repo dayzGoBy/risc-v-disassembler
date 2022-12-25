@@ -5,10 +5,10 @@ import java.nio.file.Files;
 import java.util.*;
 
 public class Disassembler {
-    public void convert(String pathFrom, String pathTo) {
+    public static void main(String[] args) {
         try (
-                Parser p = new Parser(pathFrom);
-                Writer w = new Writer(pathTo)
+                Parser p = new Parser(args[1]);
+                Writer w = new Writer(args[2])
         ) {
             p.parseHeaderAndSections();
             p.parseText();
@@ -22,9 +22,7 @@ public class Disassembler {
     }
 
     public static class Parser implements AutoCloseable {
-        File file;
         ByteBuffer source;
-        byte dataEncoding;
         int pointer = 0;
         int shoff;
         int shnum;
@@ -37,8 +35,7 @@ public class Disassembler {
 
         public Parser(String path) {
             try {
-                this.file = new File(path);
-                this.source = ByteBuffer.wrap(Files.readAllBytes(file.toPath()));
+                this.source = ByteBuffer.wrap(Files.readAllBytes(new File(path).toPath()));
                 this.source.order(ByteOrder.LITTLE_ENDIAN);
             } catch (FileNotFoundException ex) {
                 System.out.println("Error: file not found");
@@ -52,11 +49,10 @@ public class Disassembler {
                 throw new IllegalArgumentException("This file is not elf");
             }
             skip(1); // EI_CLASS
-            dataEncoding = readByte(); // Little endian must be
+            readByte(); // Little endian must be
             skip(10); // EI_VERSION/PAD
-            //END OF e_ident
-            readHalf(); // e_type/machine
-            readHalf();
+            readHalf(); // e_type
+            readHalf(); // e_machine
             readWord(); // version
             readAddr(); // entry
             readOff(); // phoff
@@ -247,8 +243,9 @@ public class Disassembler {
         private void updateSymtab(List<Command> programText, Map<Integer, String> marks) {
             int num = 0;
             for (Command command : programText) {
-                if (command.name.type == Commands.Type.B || command.name == Commands.JAL) {
-                    marks.putIfAbsent(command.getOffset(), String.format("L%d", num++));
+                if ((command.name.type == Commands.Type.B || command.name == Commands.JAL)
+                        && marks.get(command.getOffset()) == null) {
+                    marks.put(command.getOffset(), String.format("L%d", num++));
                 }
             }
         }
@@ -260,7 +257,7 @@ public class Disassembler {
             updateSymtab(programText, marks);
             for (Command command : programText) {
                 if (marks.get(command.address) != null) {
-                    writer.write(String.format("%08x <%s>:", command.address, marks.get(command.address)));
+                    writer.write(String.format("%08x   <%s>:", command.address, marks.get(command.address)));
                     writer.newLine();
                 }
                 writer.write(String.format("   %05x:\t%08x\t%7s\t%s", command.address, command.getValue(),

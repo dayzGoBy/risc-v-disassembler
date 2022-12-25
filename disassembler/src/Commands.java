@@ -16,9 +16,9 @@ public enum Commands {
     LW("LW", Type.LOAD),
     LBU("LBU", Type.LOAD),
     LHU("LHU", Type.LOAD),
-    SB("SB", Type.STORE),
-    SH("SH", Type.STORE),
-    SW("SW", Type.STORE),
+    SB("SB", Type.S),
+    SH("SH", Type.S),
+    SW("SW", Type.S),
     ADDI("ADDI", Type.I),
     SLTI("SLTI", Type.I),
     SLTIU("SLTIU", Type.I),
@@ -61,13 +61,14 @@ public enum Commands {
     }
 
     public enum Type{
-        R, I, S, B, U, J, LOAD, STORE, ECALL, EBREAK, FENCE, SHAMT, UNKNOWN
+        R, I, S, B, U, J, LOAD, ECALL, EBREAK, FENCE, SHAMT, UNKNOWN
     }
 
     public static Command classify (boolean[] line) {
         return new Command(getByCode(line), line);
     }
 
+    //im really sorry((
     private static Commands getByCode(boolean[] line) {
         int opcode = 0;
         for (int i = 0; i < 7; i++) {

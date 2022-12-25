@@ -66,8 +66,7 @@ public class Command {
             case R: throw new IllegalArgumentException();
             case I:
             case LOAD: return Arrays.copyOfRange(line, 20, 32);
-            case S:
-            case STORE: {
+            case S: {
                 boolean[] res = Arrays.copyOf(Arrays.copyOfRange(line, 7, 12), 12);
                 System.arraycopy(Arrays.copyOfRange(line, 25, 32), 0, res, 5, 7);
                 return res;
@@ -85,7 +84,7 @@ public class Command {
                 temp[10] = line[7];
                 temp[11] = line[31];
                 return temp;
-            default: throw new IllegalArgumentException("Unknown operation type");
+            default: throw new IllegalArgumentException(String.format("Unknown operation type for getting imm %d %h", address, getValue()));
         }
     }
 
@@ -123,8 +122,6 @@ public class Command {
                     return String.format("%s, %s, %s", getReg(rd()), getReg(rs1()), getReg(rs2()));
                 case I:
                     return String.format("%s, %s, %s", getReg(rd()), getReg(rs1()), getImm(imm()));
-                case S:
-                    return String.format("%s, %s, %s", getReg(rs1()), getReg(rs2()), getImm(imm()));
                 case B:
                     off = getOffset();
                     return String.format("%s, %s, 0x%x <%s>", getReg(rs1()), getReg(rs2()), off, marks.get(off));
@@ -132,7 +129,7 @@ public class Command {
                     return String.format("%s, 0x%x", getReg(rd()), getImm(imm()));
                 case LOAD:
                     return String.format("%s, %s(%s)", getReg(rd()), getImm(imm()), getReg(rs1()));
-                case STORE:
+                case S:
                     return String.format("%s, %s(%s)", getReg(rs2()), getImm(imm()), getReg(rs1()));
                 case FENCE:
                     return "iorw, iorw, 255";

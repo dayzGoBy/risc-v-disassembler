@@ -1,5 +1,3 @@
-// a structure to store section info
-
 public class Section {
     public int name;
     public int type;
@@ -30,9 +28,5 @@ public class Section {
     public String toString() {
         return String.format("name: %d, type: %d, flags: %d, addr: %d, offset: %d, size: %d, link: %d, info: %d, addralign: %d, entsize: %d",
                 name, type, flags, addr, offset, size, link, info, addralign, entsize);
-    }
-
-    public boolean isStrTab() {
-        return type == 3;
     }
 }
