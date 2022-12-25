@@ -33,14 +33,12 @@ public class Disassembler {
         byte[] shstrtab;
         byte[] strtab;
 
-        public Parser(String path) {
+        public Parser(String path) throws IOException {
             try {
                 this.source = ByteBuffer.wrap(Files.readAllBytes(new File(path).toPath()));
                 this.source.order(ByteOrder.LITTLE_ENDIAN);
-            } catch (FileNotFoundException ex) {
-                System.out.println("Error: file not found");
-            } catch (IOException ex) {
-                System.out.println("Error: IOException");
+            } catch (NullPointerException | FileNotFoundException ex) {
+                throw new IOException(ex.getMessage());
             }
         }
 
@@ -222,13 +220,11 @@ public class Disassembler {
     public static class Writer implements AutoCloseable {
         BufferedWriter writer;
 
-        public Writer(String path) {
+        public Writer(String path) throws IOException {
             try {
                 this.writer = new BufferedWriter(new FileWriter(path));
-            } catch (FileNotFoundException ex) {
-                System.out.println("Error: file not found");
-            } catch (IOException e) {
-                System.out.println("I/O error");
+            } catch (IOException ex) {
+                throw new IOException(ex.getMessage());
             }
         }
 
